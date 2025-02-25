@@ -2,6 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views import generic
 from .models import Todo
 from django.http import HttpResponseRedirect
+import subprocess
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 class IndexView(generic.ListView):
     template_name = 'todos/index.html'
@@ -10,6 +13,15 @@ class IndexView(generic.ListView):
     def get_queryset(self):
         """Return all the latest todos."""
         return Todo.objects.order_by('-created_at')
+
+@csrf_exempt
+def github_webhook(request):
+    if request.method == 'POST':
+        payload = json.loads(request.body)
+        # Here you can verify the GitHub event type or add security checks (like a secret token)
+        subprocess.call(['git', 'pull', 'origin', 'main'])  # Pull latest changes from GitHub
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 def add(request):
     title = request.POST['title']
